@@ -171,11 +171,13 @@ echo -e "${C_BLUE}Adding container control script to fabric directory...${C_RESE
 cp ./fabric/container.sh ~/fabric/
 
 # Decide how to call the Python scripts based on MODE
-ARGUMENT=""
 if [ "$MODE" == "ALL" ]; then
     ARGUMENT="--all"
 elif [ "$MODE" == "SPECIFY" ]; then
-    ARGUMENT="--specify=${SPECIFIED_ORGS}"
+    # Adjusted to remove square brackets
+    SPECIFIED_ORGS="${SPECIFIED_ORGS#[}"  # Remove leading '['
+    SPECIFIED_ORGS="${SPECIFIED_ORGS%]}"  # Remove trailing ']'
+    ARGUMENT="--specify=$SPECIFIED_ORGS"
 else
     ARGUMENT="$NUM_CONTAINERS"
 fi
