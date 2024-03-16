@@ -59,7 +59,7 @@ def generate_crypto_config_yaml(orgs):
     peer_orgs_yaml = generate_peer_orgs_yaml(orgs)
     return orderer_orgs_yaml + peer_orgs_yaml
 
-def write_crypto_config_to_file(yaml_content, file_path='./fabric/config/generated/configtx.yaml'):
+def write_crypto_config_to_file(yaml_content, file_path='./fabric/config/generated/crypto-config.yaml'):
     directory = os.path.dirname(file_path)
     os.makedirs(directory, exist_ok=True)
     if os.path.exists(file_path):
