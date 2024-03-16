@@ -67,7 +67,7 @@ fi
 # Calculate IP Suffix based on container_number
 if [[ $container_number -ge 1 && $container_number -le 9 ]]; then
     IP_SUFFIX=20$container_number
-elif [[ $container_number -ge 10 && $container_number -le 12 ]]; then
+elif [[ $container_number -ge 10 && $container_number -le 11 ]]; then
     IP_SUFFIX=2$container_number
 else
     echo "Invalid container_number"
