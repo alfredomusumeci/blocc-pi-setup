@@ -5,13 +5,13 @@ services:
     container_name: blocc-dashboard-frontend
     restart: always
     network_mode: host
-    hostname: dashboard.blocc.doc.ic.ac.uk
-    image: ghcr.io/imperialcollegelondon/blocc-dashboard-frontend:master
+    hostname: dashboard.blocc.doc.ic.ac.uk  # todo: reflect the actual domain
+    image: ghcr.io/imperialcollegelondon/blocc-dashboard-frontend:master  # todo: replace with the actual image
     depends_on:
       - backend
     environment:
-      - REACT_APP_API_ENDPOINT=http://backend.dashboard.blocc.doc.ic.ac.uk:8081
-      - REACT_APP_POLL_INTERVAL=5000
+      - REACT_APP_API_ENDPOINT=http://backend.dashboard.blocc.doc.ic.ac.uk:8081  # todo: reflect the actual endpoint
+      - REACT_APP_POLL_INTERVAL=5000  # data is refreshed every 5 seconds
     ports:
       - 8888:3000
     healthcheck:
@@ -24,22 +24,24 @@ services:
     container_name: blocc-dashboard-backend
     restart: always
     network_mode: host
-    hostname: backend.dashboard.blocc.doc.ic.ac.uk
-    image: ghcr.io/imperialcollegelondon/blocc-dashboard-backend:master
+    hostname: backend.dashboard.blocc.doc.ic.ac.uk  # todo: reflect the actual domain
+    image: ghcr.io/imperialcollegelondon/blocc-dashboard-backend:master  # todo: replace with the actual image
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db.dashboard.blocc.doc.ic.ac.uk:5432/blocc-dashboard-backend
-      - SPRING_DATASOURCE_USERNAME=blocc-dashboard-backend
-      - SPRING_DATASOURCE_PASSWORD=blocc-dashboard-backend-db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db.dashboard.blocc.doc.ic.ac.uk:5432/blocc-dashboard-backend  # todo: change db
+      - SPRING_DATASOURCE_USERNAME=blocc-dashboard-backend  # todo: change db username 
+      - SPRING_DATASOURCE_PASSWORD=blocc-dashboard-backend-db  # todo: change db password
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_JPA_SHOW_SQL=false
       - SERVER_PORT=8081
       - FABRIC_ORG_PATH=/etc/hyperledger/crypto
       - FABRIC_CONTAINER_NUM=${FABRIC_CONTAINER_NUM}
       - FABRIC_ENV=prod
-      - FABRIC_AVAILABLE_CONTAINERS=1,2,3,4,5,6,7,8,9,10,11,12
+      # container no.11 is now the gateway, so it is not present in the list below; this list needs to be kept
+      # up-to-date with the actual number of containers
+      - FABRIC_AVAILABLE_CONTAINERS=1,2,3,4,5,6,7,8,9,10,12
     volumes:
       - ~/fabric/organizations:/etc/hyperledger/crypto
 
@@ -48,11 +50,11 @@ services:
     restart: always
     network_mode: host
     container_name: blocc-dashboard-backend-db
-    hostname: db.dashboard.blocc.doc.ic.ac.uk
+    hostname: db.dashboard.blocc.doc.ic.ac.uk  # todo: reflect the actual domain
     environment:
-      - POSTGRES_DB=blocc-dashboard-backend
-      - POSTGRES_USER=blocc-dashboard-backend
-      - POSTGRES_PASSWORD=blocc-dashboard-backend-db
+      - POSTGRES_DB=blocc-dashboard-backend  # todo: change db
+      - POSTGRES_USER=blocc-dashboard-backend  # todo: change db username
+      - POSTGRES_PASSWORD=blocc-dashboard-backend-db  # todo: change db password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U blocc-dashboard-backend"]
       interval: 10s
