@@ -44,7 +44,7 @@ def generate_config_yaml(orgs):
     num_channels = len(orgs)  # Adjusted to reflect the actual number of specified organizations
     orderer_orgs_yaml = "Organizations:\n" + generate_yaml_section(orgs, ContainerOrdererTemplate)
     peer_orgs_yaml = generate_yaml_section(orgs, ContainerOrgTemplate)
-    capabilities_application_yaml = generate_capabilities_application_template_dynamic(len(orgs))
+    capabilities_application_yaml = generate_capabilities_application_template_dynamic(orgs)
     orderers_yaml = generate_orderers_yaml(orgs)
     channels_yaml = generate_channels_yaml(orgs)
     profiles_yaml = generate_profiles_yaml(orgs)

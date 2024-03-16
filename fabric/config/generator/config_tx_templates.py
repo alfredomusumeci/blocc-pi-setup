@@ -57,9 +57,9 @@ Application: &ApplicationDefaults
 """
 
 # Function to dynamically generate the organizations part
-def generate_capabilities_application_template_dynamic(num_organizations):
+def generate_capabilities_application_template_dynamic(orgs):
     organizations_yaml = ""
-    for i in range(1, num_organizations + 1):
+    for i in orgs:
         organizations_yaml += f"    - *ContainerOrg{i}\n"
     return CapabilitiesApplicationTemplateStatic + organizations_yaml + """
   Policies:
