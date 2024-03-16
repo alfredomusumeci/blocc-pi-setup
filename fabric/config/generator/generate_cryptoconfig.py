@@ -1,6 +1,7 @@
 # crypto_config_generator.py
 import os
 import sys
+import argparse
 
 OrdererOrgTemplate = """  - Name: ContainerOrderer{i}
     Domain: container{i}.blocc.doc.ic.ac.uk
@@ -33,29 +34,34 @@ PeerOrgTemplate = """  - Name: Container{i}
 
 """
 
-def generate_orderer_orgs_yaml(num_orderers):
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Generate crypto-config.yaml for Hyperledger Fabric.')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--all', action='store_true', help='Generate configuration for all organizations (1 to 11).')
+    group.add_argument('--specify', type=lambda s: [int(item) for item in s.split(',')], help='Specify the organizations to include, e.g., --specify=3,6,10')
+    group.add_argument('num', nargs='?', type=int, help='Number of organizations. This argument is optional and used if --all or --specify are not provided.')
+    return parser.parse_args()
+
+def generate_orderer_orgs_yaml(orgs):
     orderer_orgs_yaml = "OrdererOrgs:\n"
-    for i in range(1, num_orderers + 1):
+    for i in orgs:
         orderer_orgs_yaml += OrdererOrgTemplate.format(i=i, endpoint=200+i)
     return orderer_orgs_yaml
 
-def generate_peer_orgs_yaml(num_peers):
+def generate_peer_orgs_yaml(orgs):
     peer_orgs_yaml = "PeerOrgs:\n"
-    for i in range(1, num_peers + 1):
+    for i in orgs:
         peer_orgs_yaml += PeerOrgTemplate.format(i=i, endpoint=200+i)
     return peer_orgs_yaml
 
-def generate_crypto_config_yaml(num_containers):
-    orderer_orgs_yaml = generate_orderer_orgs_yaml(num_containers)
-    peer_orgs_yaml = generate_peer_orgs_yaml(num_containers)
+def generate_crypto_config_yaml(orgs):
+    orderer_orgs_yaml = generate_orderer_orgs_yaml(orgs)
+    peer_orgs_yaml = generate_peer_orgs_yaml(orgs)
     return orderer_orgs_yaml + peer_orgs_yaml
 
-def write_crypto_config_to_file(yaml_content, file_path='../generated/crypto-config.yaml'):
+def write_crypto_config_to_file(yaml_content, file_path='./fabric/config/generated/configtx.yaml'):
     directory = os.path.dirname(file_path)
-    
-    # Create the directory if it does not exist
     os.makedirs(directory, exist_ok=True)
-    
     if os.path.exists(file_path):
         os.remove(file_path)
     with open(file_path, 'w') as file:
@@ -63,8 +69,17 @@ def write_crypto_config_to_file(yaml_content, file_path='../generated/crypto-con
     print(f"Crypto configuration file {file_path} has been generated.")
 
 def main():
-    num_containers = int(sys.argv[1]) if len(sys.argv) > 1 else 12
-    crypto_config_yaml = generate_crypto_config_yaml(num_containers)
+    args = parse_arguments()
+    orgs = []
+
+    if args.all:
+        orgs = list(range(1, 12))  # Assumes organizations 1 to 11 exist
+    elif args.specify:
+        orgs = args.specify  # Organizations specified by the user
+    else:
+        orgs = list(range(1, args.num + 1)) if args.num else [1]  # Default to 1 organization if no argument is given
+
+    crypto_config_yaml = generate_crypto_config_yaml(orgs)
     write_crypto_config_to_file(crypto_config_yaml)
 
 if __name__ == "__main__":

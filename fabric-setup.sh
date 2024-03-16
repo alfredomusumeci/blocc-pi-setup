@@ -3,11 +3,15 @@
 source utils.sh
 
 function printHelp() {
-  echo -e "Usage: $0 ${C_BLUE}--container=<container_number>${C_RESET}"
+  echo -e "Usage: $0 ${C_BLUE}--container=<container_number> [--all | --specify=[3,6,10]]${C_RESET}"
   echo
-  echo -e "${C_BLUE}  --container=<container_number>"
-  echo -e "                 Set the FABRIC_CONTAINER_NUM environment variable for the container"
-  echo -e "                 Example: $0 --container=1${C_RESET}"
+  echo -e "${C_BLUE}  --container=<container_number>${C_RESET}"
+  echo -e "                 Set the FABRIC_CONTAINER_NUM environment variable for the container."
+  echo -e "${C_BLUE}  --all${C_RESET}"
+  echo -e "                 Generate configuration for all organizations (1 to 11)."
+  echo -e "${C_BLUE}  --specify=[list_of_orgs]${C_RESET}"
+  echo -e "                 Specify the organizations to include, e.g., --specify=3,6,10."
+  echo -e "                 Example: $0 --container=1 --all"
 }
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
@@ -16,7 +20,40 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 CONTAINER_FLAG="--container"
+SPECIFY_FLAG="--specify="
+ALL_FLAG="--all"
 NUM_CONTAINERS=11
+MODE=""
+SPECIFIED_ORGS=""
+
+# Parse arguments
+for i in "$@"
+do
+case $i in
+    --container=*)
+    CONTAINER_NUMBER="${i#*=}"
+    shift
+    ;;
+    --specify=*)
+    MODE="SPECIFY"
+    SPECIFIED_ORGS="${i#*=}"
+    shift
+    ;;
+    --all)
+    MODE="ALL"
+    shift
+    ;;
+    *)
+    # unknown option
+    ;;
+esac
+done
+
+if [ -z "$CONTAINER_NUMBER" ]; then
+  echo -e "${C_RED}Missing container number!${C_RESET}"
+  printHelp
+  exit 1
+fi
 
 function setContainerEnvironmentVariable() {
   local container_num="$1"
@@ -28,6 +65,8 @@ function setContainerEnvironmentVariable() {
   fi
 }
 
+setContainerEnvironmentVariable "$CONTAINER_NUMBER"
+
 function setEndpointEnvironmentVariable() {
   local peer_external_endpoint="$1"
   if ! grep -q "PEER_EXTERNAL_ENDPOINT" ~/.bashrc; then
@@ -38,14 +77,20 @@ function setEndpointEnvironmentVariable() {
   fi
 }
 
+# Calculate IP Suffix based on container_number
+IP_SUFFIX=$((CONTAINER_NUMBER + 200))
+peer_external_endpoint=192.168.199.$IP_SUFFIX:7051
+
+setEndpointEnvironmentVariable "$peer_external_endpoint"
+
 pullBinaries() {
-    echo -e "${C_BLUE} Downloading fabric binaries${C_RESET}"
+    echo -e "${C_BLUE}Downloading fabric binaries${C_RESET}"
     BINARY_FILE="hyperledger-fabric-linux-arm64-2.5.1.tar.gz"
     URL="https://github.com/ImperialCollegeLondon/blocc-fabric/releases/download/latest/${BINARY_FILE}"
     DEST_DIR=/home/pi/fabric
     echo -e "${C_BLUE}===> Downloading: ${URL}${C_RESET}"
-    echo -e "${C_BLUE}===> Will unpack to: ${DEST_DIR}${C_RESET}"
-    curl -L --retry 5 --retry-delay 3 "${URL}" | tar xz -C ${DEST_DIR}|| rc=$?
+    echo -e "${C_BLUE}===> Unpacking to: ${DEST_DIR}${C_RESET}"
+    curl -L --retry 5 --retry-delay 3 "${URL}" | tar xz -C ${DEST_DIR} || rc=$?
     if [ -n "$rc" ]; then
         echo -e "${C_RED}==> There was an error downloading the binary file.${C_RESET}"
         exit 1
@@ -53,31 +98,6 @@ pullBinaries() {
         echo -e "${C_GREEN}==> Done.${C_RESET}"
     fi
 }
-
-
-if [[ "$1" == "$CONTAINER_FLAG"* ]]; then
-  container_number="${1#*=}"
-  setContainerEnvironmentVariable "$container_number" 
-else
-  echo -e "${C_RED}Missing container number!${C_RESET}"
-  printHelp
-  exit 1
-fi
-
-# Calculate IP Suffix based on container_number
-if [[ $container_number -ge 1 && $container_number -le 9 ]]; then
-    IP_SUFFIX=20$container_number
-elif [[ $container_number -ge 10 && $container_number -le 11 ]]; then
-    IP_SUFFIX=2$container_number
-else
-    echo "Invalid container_number"
-    exit 1
-fi
-
-# Replace hostname with static IP
-peer_external_endpoint=192.168.199.$IP_SUFFIX:7051
-
-setEndpointEnvironmentVariable "$peer_external_endpoint" 
 
 echo -e "${C_BLUE}Installing Docker...${C_RESET}"
 
@@ -117,19 +137,19 @@ fi
 echo -e "${C_BLUE}Adding Fabric compose file to fabric directory...${C_RESET}"
 cp ./fabric/compose/compose.yaml ~/fabric/
 
-echo -e "${C_BLUE}Adding dashbaord compose file to fabric directory...${C_RESET}"
+echo -e "${C_BLUE}Adding dashboard compose file to fabric directory...${C_RESET}"
 cp ./fabric/compose/dashboard.yaml ~/fabric/
 
 echo -e "${C_BLUE}Adding app compose file to fabric directory...${C_RESET}"
 cp ./fabric/compose/app.yaml ~/fabric/
 
 echo -e "${C_BLUE}Adding core.yaml to fabric directory...${C_RESET}"
-sed -e "s/\${FABRIC_CONTAINER_NUM}/${container_number}/g" \
+sed -e "s/\${FABRIC_CONTAINER_NUM}/${CONTAINER_NUMBER}/g" \
     -e "s/\${PEER_EXTERNAL_ENDPOINT}/${peer_external_endpoint}/g" \
 ./fabric/config/static/core.yaml > ~/fabric/config/core.yaml
 
 echo -e "${C_BLUE}Adding orderer.yaml to fabric directory...${C_RESET}"
-sed "s/\${FABRIC_CONTAINER_NUM}/${container_number}/g" ./fabric/config/static/orderer.yaml > ~/fabric/config/orderer.yaml
+sed "s/\${FABRIC_CONTAINER_NUM}/${CONTAINER_NUMBER}/g" ./fabric/config/static/orderer.yaml > ~/fabric/config/orderer.yaml
 
 # Add ~/fabric/bin to PATH if not already added
 if [[ ":$PATH:" != *":$FABRIC_DIR/bin:"* ]]; then
@@ -150,14 +170,24 @@ fi
 echo -e "${C_BLUE}Adding container control script to fabric directory...${C_RESET}"
 cp ./fabric/container.sh ~/fabric/
 
-echo -e "${C_BLUE}Generating crypto-config.yaml...${C_RESET}"
-python3 ./fabric/config/generator/generate_cryptoconfig.py $NUM_CONTAINERS
+# Decide how to call the Python scripts based on MODE
+ARGUMENT=""
+if [ "$MODE" == "ALL" ]; then
+    ARGUMENT="--all"
+elif [ "$MODE" == "SPECIFY" ]; then
+    ARGUMENT="--specify=${SPECIFIED_ORGS}"
+else
+    ARGUMENT="$NUM_CONTAINERS"
+fi
 
-echo -e "${C_BLUE}Adding crytogen config to fabric directory...${C_RESET}"
+echo -e "${C_BLUE}Generating crypto-config.yaml...${C_RESET}"
+python3 ./fabric/config/generator/generate_cryptoconfig.py $ARGUMENT
+
+echo -e "${C_BLUE}Adding cryptogen config to fabric directory...${C_RESET}"
 cp ./fabric/config/generated/crypto-config.yaml ~/fabric
 
 echo -e "${C_BLUE}Generating configtx.yaml...${C_RESET}"
-python3 ./fabric/config/generator/generate_configtx.py $NUM_CONTAINERS
+python3 ./fabric/config/generator/generate_configtx.py $ARGUMENT
 
 echo -e "${C_BLUE}Adding configtx.yaml to fabric directory...${C_RESET}"
 cp ./fabric/config/generated/configtx.yaml ~/fabric/config
