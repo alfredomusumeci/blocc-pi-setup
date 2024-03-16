@@ -16,6 +16,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 CONTAINER_FLAG="--container"
+NUM_CONTAINERS=11
 
 function setContainerEnvironmentVariable() {
   local container_num="$1"
@@ -125,10 +126,10 @@ cp ./fabric/compose/app.yaml ~/fabric/
 echo -e "${C_BLUE}Adding core.yaml to fabric directory...${C_RESET}"
 sed -e "s/\${FABRIC_CONTAINER_NUM}/${container_number}/g" \
     -e "s/\${PEER_EXTERNAL_ENDPOINT}/${peer_external_endpoint}/g" \
-./fabric/config/core.yaml > ~/fabric/config/core.yaml
+./fabric/config/static/core.yaml > ~/fabric/config/core.yaml
 
 echo -e "${C_BLUE}Adding orderer.yaml to fabric directory...${C_RESET}"
-sed "s/\${FABRIC_CONTAINER_NUM}/${container_number}/g" ./fabric/config/orderer.yaml > ~/fabric/config/orderer.yaml
+sed "s/\${FABRIC_CONTAINER_NUM}/${container_number}/g" ./fabric/config/static/orderer.yaml > ~/fabric/config/orderer.yaml
 
 # Add ~/fabric/bin to PATH if not already added
 if [[ ":$PATH:" != *":$FABRIC_DIR/bin:"* ]]; then
@@ -149,11 +150,17 @@ fi
 echo -e "${C_BLUE}Adding container control script to fabric directory...${C_RESET}"
 cp ./fabric/container.sh ~/fabric/
 
+echo -e "${C_BLUE}Generating crypto-config.yaml...${C_RESET}"
+python3 ./fabric/config/generator/generate_cryptoconfig.py $NUM_CONTAINERS
+
 echo -e "${C_BLUE}Adding crytogen config to fabric directory...${C_RESET}"
-cp ./fabric/config/crypto-config.yaml ~/fabric
+cp ./fabric/config/generated/crypto-config.yaml ~/fabric
+
+echo -e "${C_BLUE}Generating configtx.yaml...${C_RESET}"
+python3 ./fabric/config/generator/generate_configtx.py $NUM_CONTAINERS
 
 echo -e "${C_BLUE}Adding configtx.yaml to fabric directory...${C_RESET}"
-cp ./fabric/config/configtx.yaml ~/fabric/config
+cp ./fabric/config/generated/configtx.yaml ~/fabric/config
 
 echo -e "${C_BLUE}Adding fabric scripts to fabric directory...${C_RESET}"
 cp -r ./fabric/scripts ~/fabric
