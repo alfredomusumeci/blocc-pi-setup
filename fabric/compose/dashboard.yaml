@@ -5,7 +5,7 @@ services:
     container_name: blocc-dashboard-frontend
     restart: always
     network_mode: host
-    hostname: dashboard.blocc.doc.ic.ac.uk  # todo: reflect the actual domain
+    hostname: https://blocc-frontend.vercel.app # frontend dashboard url
     image: ghcr.io/imperialcollegelondon/blocc-dashboard-frontend:master  # todo: replace with the actual image
     depends_on:
       - backend
@@ -30,9 +30,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db.dashboard.blocc.doc.ic.ac.uk:5432/blocc-dashboard-backend  # todo: change db
-      - SPRING_DATASOURCE_USERNAME=blocc-dashboard-backend  # todo: change db username 
-      - SPRING_DATASOURCE_PASSWORD=blocc-dashboard-backend-db  # todo: change db password
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db.blocc-dashboard-backend.postgres.database.azure.com:5432/blocc-dashboard-backend  # todo: change db
+      - SPRING_DATASOURCE_USERNAME=bloccdashboardbackend  # todo: change db username 
+      - SPRING_DATASOURCE_PASSWORD=W2Fs28BayxdW4U9gMm8R  # todo: change db password
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_JPA_SHOW_SQL=false
       - SERVER_PORT=8081
@@ -49,13 +49,13 @@ services:
     restart: always
     network_mode: host
     container_name: blocc-dashboard-backend-db
-    hostname: db.dashboard.blocc.doc.ic.ac.uk  # todo: reflect the actual domain
+    hostname: blocc-dashboard-backend.postgres.database.azure.com  # todo: reflect the actual domain
     environment:
       - POSTGRES_DB=blocc-dashboard-backend  # todo: change db
       - POSTGRES_USER=blocc-dashboard-backend  # todo: change db username
       - POSTGRES_PASSWORD=blocc-dashboard-backend-db  # todo: change db password
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U blocc-dashboard-backend"]
+      test: ["CMD-SHELL", "pg_isready -U bloccdashboardbackend"]
       interval: 10s
       timeout: 5s
       retries: 5
